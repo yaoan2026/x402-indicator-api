@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+test_log.txt
+smoke_server.log
+remote_log.txt

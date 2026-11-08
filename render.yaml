@@ -1,0 +1,26 @@
+# Render Blueprint：在 Render 選 New > Blueprint，連到這個 repo 就會照這裡的設定部署
+services:
+  - type: web
+    name: x402-indicator-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: 'uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips "*"'
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      # 你的收款地址（MetaMask 地址），部署時 Render 會請你填
+      - key: PAY_TO
+        sync: false
+      - key: PRICE
+        value: "$0.001"
+      # 先用 Base Sepolia 測試網；要收真錢時改成 eip155:8453 並設定 CDP 金鑰
+      - key: NETWORK
+        value: eip155:84532
+      - key: FACILITATOR_URL
+        value: https://x402.org/facilitator
+      - key: USE_CDP_FACILITATOR
+        value: "false"
+      - key: PAYMENTS_ENABLED
+        value: "true"
