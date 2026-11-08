@@ -11,6 +11,7 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
+from discovery import DESCRIPTION
 from service import (
     MAX_PRICES,
     PREVIEW_MAX_PRICES,
@@ -27,6 +28,8 @@ FACILITATOR_URL = os.getenv("FACILITATOR_URL", "https://x402.org/facilitator").s
 PRICE = os.getenv("PRICE", "$0.001").strip()
 PAYMENTS_ENABLED = os.getenv("PAYMENTS_ENABLED", "true").strip().lower() != "false"
 USE_CDP_FACILITATOR = os.getenv("USE_CDP_FACILITATOR", "false").strip().lower() == "true"
+# 在付費路由上宣告 Bazaar 說明，透過 CDP facilitator 收到第一筆款後就會被收錄進服務目錄
+ENABLE_BAZAAR = os.getenv("ENABLE_BAZAAR", "true").strip().lower() != "false"
 
 PAID_ROUTE = "POST /v1/indicators"
 
@@ -55,7 +58,11 @@ def _setup_payments(app: FastAPI) -> None:
     from x402.server import x402ResourceServer
 
     if USE_CDP_FACILITATOR:
-        # 主網建議用 Coinbase 的 facilitator，需要 CDP API key（見 README）
+        # 主網用 Coinbase 的 facilitator，需要 CDP API 金鑰（見 README）
+        if not (os.getenv("CDP_API_KEY_ID") and os.getenv("CDP_API_KEY_SECRET")):
+            raise RuntimeError(
+                "USE_CDP_FACILITATOR=true，但沒有設定 CDP_API_KEY_ID / CDP_API_KEY_SECRET"
+            )
         from cdp.x402 import create_facilitator_config
 
         facilitator = HTTPFacilitatorClient(create_facilitator_config())
@@ -65,6 +72,24 @@ def _setup_payments(app: FastAPI) -> None:
     server = x402ResourceServer(facilitator)
     server.register(NETWORK, ExactEvmServerScheme())
 
+    route_extras: dict = {}
+    if ENABLE_BAZAAR:
+        from x402.extensions.bazaar import (
+            OutputConfig,
+            bazaar_resource_server_extension,
+            declare_discovery_extension,
+        )
+
+        import discovery
+
+        server.register_extension(bazaar_resource_server_extension)
+        route_extras["extensions"] = declare_discovery_extension(
+            input=discovery.EXAMPLE_INPUT,
+            input_schema=discovery.INPUT_SCHEMA,
+            body_type="json",
+            output=OutputConfig(example=discovery.EXAMPLE_OUTPUT),
+        )
+
     routes = {
         PAID_ROUTE: RouteConfig(
             accepts=[
@@ -73,10 +98,8 @@ def _setup_payments(app: FastAPI) -> None:
                 )
             ],
             mime_type="application/json",
-            description=(
-                "RSI, MACD, Bollinger Bands, SMA, EMA and a signal summary "
-                f"for up to {MAX_PRICES} closing prices."
-            ),
+            description=DESCRIPTION,
+            **route_extras,
         ),
     }
     app.add_middleware(PaymentMiddlewareASGI, routes=routes, server=server)

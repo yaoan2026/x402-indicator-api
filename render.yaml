@@ -22,5 +22,12 @@ services:
         value: https://x402.org/facilitator
       - key: USE_CDP_FACILITATOR
         value: "false"
+      # Coinbase Developer Platform 的 API 金鑰：只在 Render 的 Environment 頁面填，不要寫進程式
+      - key: CDP_API_KEY_ID
+        sync: false
+      - key: CDP_API_KEY_SECRET
+        sync: false
+      - key: ENABLE_BAZAAR
+        value: "true"
       - key: PAYMENTS_ENABLED
         value: "true"

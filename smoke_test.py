@@ -93,6 +93,7 @@ def start_server(pay_to: str):
         FACILITATOR_URL=FACILITATOR_URL,
         PRICE=PRICE,
         USE_CDP_FACILITATOR="false",
+        ENABLE_BAZAAR="true",
     )
     log = open(HERE / "smoke_server.log", "w", encoding="utf-8")
     proc = subprocess.Popen(
@@ -160,6 +161,8 @@ def run_checks(pay_to: str, buyer_key: str, funded: bool) -> None:
             and amount == EXPECTED_AMOUNT
         )
         check("402 requirements match (network, payTo, 0.001 USDC)", ok, f"amount={amount}")
+        ext = pr.get("extensions") or {}
+        check("402 advertises Bazaar discovery metadata", "bazaar" in ext, f"extensions={list(ext)}")
 
     # 公開的測試網 facilitator 偶爾會結算失敗（例如它自己的交易 nonce 衝突），真付款時最多重試 3 次。
     # 每次重試都會重新簽一筆新的付款授權；結算失敗的那筆不會扣款。

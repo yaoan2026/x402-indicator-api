@@ -15,6 +15,7 @@
 | `main.py` | API 伺服器（FastAPI）＋ x402 收費設定 |
 | `service.py` | 請求格式驗證、計算邏輯、摘要判斷 |
 | `indicators.py` | 純 Python 的指標公式 |
+| `discovery.py` | 給 x402 Bazaar 服務目錄看的說明（輸入格式、範例輸出） |
 | `client.py` | 買方測試腳本：自動付款並呼叫付費端點 |
 | `new_wallet.py` | 產生一個測試錢包（只印出來） |
 | `setup_wallets.bat` | Windows：產生收款＋付款兩個測試錢包、寫進 `.env`，並打開測試幣水龍頭 |
@@ -184,14 +185,14 @@ RSI 的計算已經對照 StockCharts 的經典範例資料驗證過。
 1. **部署到 Render（免費）**：專案裡的 `render.yaml` 已經寫好設定。在 Render 選 **New → Blueprint**，連到這個 GitHub repo，填入 `PAY_TO`（你的 MetaMask 地址）就會開始部署，預設先跑在測試網。
    - 免費方案閒置 15 分鐘會休眠，下一次請求要等約 1 分鐘喚醒。
    - 部署好後，Windows 可以雙擊 `pay_remote.bat`，貼上 Render 給你的網址，實際付一次 0.001 測試 USDC。結果存在 `remote_log.txt`。
-2. **換成主網**，在 Render 的 Environment 頁面修改：
-   - `NETWORK=eip155:8453`（Base 主網）
-   - `USE_CDP_FACILITATOR=true`
-   - `CDP_API_KEY_ID`、`CDP_API_KEY_SECRET`：到 Coinbase Developer Platform 申請
-   - 另外執行 `pip install cdp-sdk`（`requirements.txt` 裡有註解）
-3. **收款地址**：換成你自己長期保管的正式錢包，不要用 `new_wallet.py` 產生的測試錢包。
-4. **讓別人找到你**：把服務登記到 x402 生態的服務目錄，例如 Bazaar、Agentic.market，讓 AI 代理找得到。也可以到 GitHub、X、Discord 的 x402 社群分享。
-5. **定價**：可以先維持 0.001～0.01 美元，看呼叫量再調整。`PRICE` 改環境變數就好，不用改程式。
+2. **換成 Coinbase 的 facilitator（CDP）**：
+   - 到 Coinbase Developer Platform 建立 API 金鑰，把 `CDP_API_KEY_ID`、`CDP_API_KEY_SECRET` 填在 Render 的 **Environment** 頁面。金鑰只放在這裡，不要寫進程式或 GitHub。
+   - 把 `render.yaml` 的 `USE_CDP_FACILITATOR` 改成 `"true"` 後推上 GitHub，Render 會自動重新部署。建議先維持測試網，用 `pay_remote.bat` 確認能付款。
+   - CDP facilitator 每月前 1,000 筆結算免費，之後每筆收 0.001 美元。
+3. **換成主網**：把 `render.yaml` 的 `NETWORK` 改成 `eip155:8453`（Base 主網）後推上 GitHub。
+4. **定價**：因為超過免費額度後，facilitator 每筆會收 0.001 美元，主網建議把 `PRICE` 設在 0.005～0.01 美元以上，才有利潤。
+5. **收款地址**：用你自己長期保管的正式錢包（例如 MetaMask），不要用 `setup_wallets.py` 產生的測試錢包。
+6. **讓 AI 代理找到你**：付費路由已經宣告了 Bazaar 說明（`discovery.py`），透過 CDP facilitator 成功收到一筆付款後，大約 15 分鐘內就會被收錄進 x402 Bazaar 服務目錄。也可以到 GitHub、X、Discord 的 x402 社群分享。
 
 > 收到的 USDC 如果要換成台幣，會經過交易所出金，也可能牽涉所得申報，請自行確認相關規定。這個專案只計算指標，不構成投資建議。
 
@@ -200,6 +201,7 @@ RSI 的計算已經對照 StockCharts 的經典範例資料驗證過。
 ## 疑難排解
 
 - **`ImportError`／`ModuleNotFoundError: x402...`**：x402 Python SDK 從 v1 到 v2 改過套件路徑。先執行 `pip install -U "x402[evm,fastapi,httpx]"`；如果還是不行，對照官方文件 <https://docs.cdp.coinbase.com/x402> 的 Python 範例調整 `main.py` 裡 `_setup_payments()` 的 import。
+- **`RuntimeError: USE_CDP_FACILITATOR=true，但沒有設定 CDP_API_KEY_ID`**：Render 的 Environment 頁面還沒填 CDP 金鑰。
 - **`RuntimeError: PAY_TO 沒有設定`**：`.env` 沒填收款地址，或 `.env` 不在你執行指令的資料夾。
 - **`client.py` 一直拿到 402**：付款錢包可能沒有 Base Sepolia 的 USDC，或 `.env` 裡的 `NETWORK` 跟伺服器不一致。
 - **付款失敗、facilitator 錯誤**：測試網的公開 facilitator 偶爾會忙碌，等一下再試。
