@@ -124,6 +124,7 @@ async def info() -> dict:
             "price_per_call": PRICE,
             "network": NETWORK,
             "pay_to": PAY_TO or None,
+            "facilitator": "coinbase-cdp" if USE_CDP_FACILITATOR else FACILITATOR_URL,
         },
         "endpoints": {
             "GET /health": "free",
