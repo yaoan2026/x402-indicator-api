@@ -74,21 +74,25 @@ def _setup_payments(app: FastAPI) -> None:
 
     route_extras: dict = {}
     if ENABLE_BAZAAR:
-        from x402.extensions.bazaar import (
-            OutputConfig,
-            bazaar_resource_server_extension,
-            declare_discovery_extension,
-        )
+        try:
+            from x402.extensions.bazaar import (
+                OutputConfig,
+                bazaar_resource_server_extension,
+                declare_discovery_extension,
+            )
+        except ImportError as e:
+            # Bazaar 只影響「被搜尋到」，不影響收款；套件缺少時照常啟動，只是不宣告
+            print(f"WARNING: Bazaar discovery disabled ({e})", flush=True)
+        else:
+            import discovery
 
-        import discovery
-
-        server.register_extension(bazaar_resource_server_extension)
-        route_extras["extensions"] = declare_discovery_extension(
-            input=discovery.EXAMPLE_INPUT,
-            input_schema=discovery.INPUT_SCHEMA,
-            body_type="json",
-            output=OutputConfig(example=discovery.EXAMPLE_OUTPUT),
-        )
+            server.register_extension(bazaar_resource_server_extension)
+            route_extras["extensions"] = declare_discovery_extension(
+                input=discovery.EXAMPLE_INPUT,
+                input_schema=discovery.INPUT_SCHEMA,
+                body_type="json",
+                output=OutputConfig(example=discovery.EXAMPLE_OUTPUT),
+            )
 
     routes = {
         PAID_ROUTE: RouteConfig(
