@@ -14,14 +14,15 @@ services:
       - key: PAY_TO
         sync: false
       - key: PRICE
-        value: "$0.001"
+        value: "$0.01"
       # 先用 Base Sepolia 測試網；要收真錢時改成 eip155:8453 並設定 CDP 金鑰
       - key: NETWORK
         value: eip155:84532
       - key: FACILITATOR_URL
         value: https://x402.org/facilitator
+      # Coinbase CDP facilitator（需要下面兩個金鑰）；x402.org 那個只支援測試網
       - key: USE_CDP_FACILITATOR
-        value: "false"
+        value: "true"
       # Coinbase Developer Platform 的 API 金鑰：只在 Render 的 Environment 頁面填，不要寫進程式
       - key: CDP_API_KEY_ID
         sync: false
